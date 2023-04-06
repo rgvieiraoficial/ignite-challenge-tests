@@ -1,9 +1,7 @@
 import { InMemoryUsersRepository } from '../../../users/repositories/in-memory/InMemoryUsersRepository';
 import { CreateUserUseCase } from '../../../users/useCases/createUser/CreateUserUseCase';
-import { ICreateUserDTO } from '../../../users/useCases/createUser/ICreateUserDTO';
 import { InMemoryStatementsRepository } from '../../repositories/in-memory/InMemoryStatementsRepository';
 import { CreateStatementUseCase } from '../createStatement/CreateStatementUseCase';
-import { ICreateStatementDTO } from '../createStatement/ICreateStatementDTO';
 import { GetStatementOperationError } from './GetStatementOperationError';
 import { GetStatementOperationUseCase } from './GetStatementOperationUseCase';
 
@@ -18,103 +16,73 @@ enum OperationType {
   WITHDRAW = 'withdraw',
 }
 
-describe('Get Statement Operation', () => {
+describe('Get Statement Operation UseCase', () => {
   beforeEach(() => {
     inMemoryUsersRepository = new InMemoryUsersRepository();
-
     inMemoryStatementsRepository = new InMemoryStatementsRepository();
 
-    createUserUseCase = new CreateUserUseCase(inMemoryUsersRepository);
+    createStatementUseCase = new CreateStatementUseCase(
+      inMemoryUsersRepository,
+      inMemoryStatementsRepository,
+    );
 
-    createStatementUseCase = new CreateStatementUseCase(inMemoryUsersRepository, inMemoryStatementsRepository);
-
-    getStatementOperationUseCase = new GetStatementOperationUseCase(inMemoryUsersRepository, inMemoryStatementsRepository);
+    getStatementOperationUseCase = new GetStatementOperationUseCase(
+      inMemoryUsersRepository,
+      inMemoryStatementsRepository,
+    );
   });
 
-  it('shout be able to show an operation in detail', async () => {
-    const user: ICreateUserDTO = {
-      name: 'Glodobaldo Ferrundes',
-      email: 'glodobaldo.ferrundes@gmail.com',
-      password: '123456'
-    };
+  it('should be able to get the user statement operation using user_id and statement_id', async () => {
+    const user = await inMemoryUsersRepository.create({
+      name: 'fake_name',
+      email: 'fake_email@mail.com',
+      password: 'fake_password',
+    });
 
-    const addUser = await createUserUseCase.execute(user);
+    const user_id = user.id as string;
 
-    const user_id = addUser.id as string;
-
-    const type = 'deposit' as OperationType;
-
-    const statement: ICreateStatementDTO = {
+    const statement = await createStatementUseCase.execute({
       user_id,
-      type,
-      amount: 500,
-      description: 'Test deposit'
-    }
+      type: OperationType.DEPOSIT,
+      amount: 1000,
+      description: 'fake_description_2',
+    });
 
-    const addStatement = await createStatementUseCase.execute(statement);
+    const statement_id = statement.id as string;
 
-    const statement_id = addStatement.id as string;
+    const statementOperation = await getStatementOperationUseCase.execute({
+      user_id,
+      statement_id
+    });
 
-    const result = await getStatementOperationUseCase.execute({ user_id, statement_id });
-
-    expect(result).toHaveProperty('amount')
+    expect(statementOperation).toHaveProperty('id');
+    expect(statementOperation.id).toEqual(statement.id);
+    expect(statementOperation).toEqual(statement);
   });
 
-  it('shout not be able to show an operation in detail of a non-existing user', () => {
-    expect(async () => {
-      const user: ICreateUserDTO = {
-        name: 'Usuário Oculto',
-        email: 'hidden.user@gmail.com',
-        password: '123456'
-      };
-
-      const addUser = await createUserUseCase.execute(user);
-
-      const user_id = addUser.id as string;
-
-      const type = 'deposit' as OperationType;
-
-      const statement: ICreateStatementDTO = {
-        user_id,
-        type,
-        amount: 500,
-        description: 'Test deposit'
-      }
-
-      const addStatement = await createStatementUseCase.execute(statement);
-
-      const statement_id = addStatement.id as string;
-
-      await getStatementOperationUseCase.execute({ user_id: 'invalid id', statement_id });
-    }).rejects.toBeInstanceOf(GetStatementOperationError.UserNotFound);
+  it('should not be able to get the user statement operation if the user does not exist', async () => {
+    await expect(
+      getStatementOperationUseCase.execute({
+        user_id: 'fake_user_id',
+        statement_id: 'fake_statement_id',
+      }),
+    ).rejects.toBeInstanceOf(GetStatementOperationError.UserNotFound);
   });
 
-  it('shout not be able to show an operation in detail with invalid id', () => {
-    expect(async () => {
-      const user: ICreateUserDTO = {
-        name: 'Usuário Oculto',
-        email: 'hidden.user@gmail.com',
-        password: '123456'
-      };
+  it('should not be able to get the user statement operation if the statement does not exist', async () => {
+    const user = await inMemoryUsersRepository.create({
+      name: 'fake_name',
+      email: 'fake_email@mail.com',
+      password: 'fake_password',
+    });
 
-      const addUser = await createUserUseCase.execute(user);
+    const user_id = user.id as string;
 
-      const user_id = addUser.id as string;
-
-      const type = 'deposit' as OperationType;
-
-      const statement: ICreateStatementDTO = {
+    await expect(
+      getStatementOperationUseCase.execute({
         user_id,
-        type,
-        amount: 500,
-        description: 'Test deposit'
-      }
-
-      const addStatement = await createStatementUseCase.execute(statement);
-
-      const statement_id = 'invalid id';
-
-      await getStatementOperationUseCase.execute({ user_id, statement_id });
-    }).rejects.toBeInstanceOf(GetStatementOperationError.StatementNotFound);
+        statement_id: 'fake_statement_id',
+      }),
+    ).rejects.toBeInstanceOf(GetStatementOperationError.StatementNotFound);
   });
 });

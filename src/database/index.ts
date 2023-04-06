@@ -6,8 +6,8 @@ export default async (host = 'database'): Promise<Connection> => {
   return createConnection(
     Object.assign(defaultOptions, {
       host: process.env.NODE_ENV === 'test' ? 'localhost' : host, //Essa opção deverá ser EXATAMENTE o nome dado ao service do banco de dados
-      port: '5432',
-      database: process.env.NODE_ENV === 'test' ? 'rentx_test' : defaultOptions.database
+      port: process.env.NODE_ENV === 'test' ? '5435' : '5432',
+      database: process.env.NODE_ENV === 'test' ? 'fin_api_test' : defaultOptions.database
     })
   );
 };

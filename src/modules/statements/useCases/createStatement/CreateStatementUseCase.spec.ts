@@ -27,7 +27,7 @@ describe('Create Statement', () => {
     createStatementUseCase = new CreateStatementUseCase(inMemoryUsersRepository, inMemoryStatementsRepository);
   });
 
-  it('should be able to deposit an amout to user account', async () => {
+  it('should be able to deposit an amount to user account', async () => {
     const user: ICreateUserDTO = {
       name: 'Glodobaldo Ferrundes',
       email: 'glodobaldo.ferrundes@gmail.com',
